@@ -25,6 +25,10 @@
     finalPhase: $('final-phase'),
     newBest: $('new-best'),
     live: $('live'),
+    night: $('night'),
+    nightFill: $('night-fill'),
+    holdEmpty: $('hold-empty'),
+    pauseLore: $('pause-lore'),
     holdText: $('hold-text'),
     nextText: $('next-text'),
   };

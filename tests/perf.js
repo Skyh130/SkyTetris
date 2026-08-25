@@ -167,6 +167,28 @@ const log = (k, v) => { out[k] = v; };
   });
   log('soak', soak);
 
+  /* --------------------------------------------- 6.4 밤의 시각별 색 거리 */
+  const phases = await page.evaluate(async () => {
+    const g = window.glassNight;
+    const sample = (lv) => {
+      g.sky.setLevel(lv); g.sky.shownLevel = lv; g.sky.bake(); g.sky.draw();
+      const c = g.sky.canvas, cx = c.getContext('2d');
+      const pick = (fx, fy) => {
+        const d = cx.getImageData(Math.floor(c.width * fx), Math.floor(c.height * fy), 1, 1).data;
+        return [d[0], d[1], d[2]];
+      };
+      return { top: pick(0.3, 0.12), mid: pick(0.3, 0.5), low: pick(0.3, 0.82) };
+    };
+    const ats = NIGHT_PHASES.map((p) => p.at);
+    const shots = ats.map(sample);
+    const dist = (a, b) => ['top', 'mid', 'low']
+      .reduce((s2, k) => s2 + Math.abs(a[k][0]-b[k][0]) + Math.abs(a[k][1]-b[k][1]) + Math.abs(a[k][2]-b[k][2]), 0);
+    const gaps = [];
+    for (let i = 1; i < shots.length; i++) gaps.push(dist(shots[i - 1], shots[i]));
+    return { levels: ats, gaps, minGap: Math.min(...gaps), firstToLast: dist(shots[0], shots[shots.length - 1]) };
+  });
+  log('phases', phases);
+
   /* --------------------------------------------- 6.5 견고함 (엣지케이스) */
   const robust = await page.evaluate(async () => {
     const g = window.glassNight;
@@ -294,6 +316,7 @@ const log = (k, v) => { out[k] = v; };
     if (l.clipped) f.push(`글자잘림${l.clipped}`);
     if (f.length) bad.push(`${l.w}px: ${f.join(', ')}`);
   }
+  if (out.phases.minGap < 40) bad.push(`이웃한 밤의 시각이 너무 비슷함 (최소 색거리 ${out.phases.minGap})`);
   for (const i of (out.robust ? out.robust.issues : [])) bad.push('견고함: ' + i);
   if (errors.length) bad.push(`예외 ${errors.length}건: ${errors.slice(0, 3).join(' | ')}`);
 
@@ -304,6 +327,7 @@ const log = (k, v) => { out[k] = v; };
   console.log(' 연출중입력  ', JSON.stringify(out.inputDuringClear));
   console.log(' 난이도곡선  ', JSON.stringify({ monotone: out.difficulty.monotone, minRatio: out.difficulty.minRatio }));
   console.log(' 자동플레이  ', JSON.stringify(out.soak));
+  console.log(' 밤의 시각   ', JSON.stringify(out.phases));
   console.log(' 견고함      ', out.robust.issues.length ? out.robust.issues.join(' | ') : '문제 없음');
   console.log(' 레이아웃    ', out.layout.map((l) => `${l.w}:${l.cell}`).join(' '));
   console.log(`\n${bad.length ? '\x1b[31m문제 ' + bad.length + '건\x1b[0m' : '\x1b[32m문제 없음\x1b[0m'}`);

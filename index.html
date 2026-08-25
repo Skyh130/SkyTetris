@@ -16,6 +16,11 @@
 <header class="title-bar">
   <h1>유리알의 밤</h1>
   <p class="phase-now"><span id="phase">해거름</span><em id="phase-sub">아직 서쪽이 붉다</em></p>
+  <div class="night" id="night" role="img" aria-label="밤이 얼마나 깊었는지">
+    <span class="night-fill" id="night-fill"></span>
+    <i style="left:0%"></i><i style="left:20%"></i><i style="left:46.7%"></i>
+    <i style="left:73.3%"></i><i style="left:100%"></i>
+  </div>
 </header>
 
 <div class="stage">
@@ -25,6 +30,7 @@
     <section class="box">
       <h2 id="hold-label">홀드</h2>
       <canvas id="hold" role="img" aria-labelledby="hold-label" aria-describedby="hold-text"></canvas>
+      <p class="empty-hint" id="hold-empty">아직 비어 있다</p>
       <p class="sr-only" id="hold-text">보관 중인 조각 없음</p>
     </section>
 
@@ -66,7 +72,7 @@
 
       <div class="sheet" data-screen="paused" hidden>
         <h2>잠시 멈춤</h2>
-        <p class="lore">하늘도 함께 멈춰 있다.</p>
+        <p class="lore" id="pause-lore">하늘도 함께 멈춰 있다</p>
         <button class="cta" data-action="resume">이어서</button>
         <p class="hint"><kbd>P</kbd> 또는 <kbd>Esc</kbd></p>
       </div>

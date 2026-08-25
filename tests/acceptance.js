@@ -168,7 +168,7 @@ const shot = async (page, name) => {
   const seeThrough = await page.evaluate(() => {
     const g = window.glassNight, e = g.engine;
     e.board.forEach((r) => r.fill(null));
-    e.piece = null; g.clearing = null;
+    e.piece = null; g.clearing = null; g.dying = null; g.state = 'ready';
     e.board[12][4] = 'I';
     g.shake = 0; g.fx.clear();
     g.drawBoard();

@@ -9,9 +9,10 @@
 /* 레벨 → 그 순간의 하늘 상태 */
 function phaseAt(level) {
   const ps = NIGHT_PHASES;
-  if (level <= ps[0].at) return { ...ps[0], index: 0, t: 0 };
+  if (level <= ps[0].at) return { ...ps[0], index: 0, t: 0, ridge: ps[0].sky[3] };
   if (level >= ps[ps.length - 1].at) {
-    return { ...ps[ps.length - 1], index: ps.length - 1, t: 0 };
+    const last = ps[ps.length - 1];
+    return { ...last, index: ps.length - 1, t: 0, ridge: last.sky[3] };
   }
   let i = 0;
   while (i < ps.length - 1 && level > ps[i + 1].at) i++;
@@ -33,6 +34,7 @@ function phaseAt(level) {
     },
     haze: t < 0.5 ? a.haze : b.haze,
     leafTint: (t < 0.5 ? a : b).leafTint,
+    ridge: mixHex(a.sky[3], b.sky[3], t),
   };
 }
 
@@ -52,6 +54,7 @@ class Sky {
     this.brightStars = [];
     this.leaves = [];
     this.meteors = [];
+    this.clouds = [];
     this.meteorTimer = rand(6, 14);
     this.time = 0;
 
@@ -77,6 +80,7 @@ class Sky {
 
     this.seedStars();
     this.seedLeaves();
+    this.seedClouds();
     this.bakedLevel = -99;      // 다시 구워야 한다
   }
 
@@ -127,6 +131,36 @@ class Sky {
     };
   }
 
+  /* 구름 — 지평선 위를 아주 느리게 지나는 옅은 띠 */
+  seedClouds() {
+    const n = this.reduced ? 2 : 4;
+    this.clouds = [];
+    for (let i = 0; i < n; i++) {
+      this.clouds.push({
+        x: rand(-0.2, 1.2),
+        y: rand(0.42, 0.78),
+        w: rand(0.22, 0.5),
+        h: rand(0.02, 0.055),
+        vx: rand(0.004, 0.014) * (Math.random() < 0.5 ? -1 : 1),
+        alpha: rand(0.05, 0.13),
+      });
+    }
+  }
+
+  /* 능선 — 하늘과 땅을 가르는 선. 두 겹으로 두어 원근이 생긴다.
+     매번 계산하면 아까우니 씨앗에서 한 번만 만들고 base 에 함께 굽는다. */
+  ridgeLine(seed, points, amp, base) {
+    const pts = [];
+    let v = seed;
+    const rnd = () => { v = (v * 9301 + 49297) % 233280; return v / 233280; };
+    for (let i = 0; i <= points; i++) {
+      const t = i / points;
+      const bump = Math.sin(t * Math.PI * 3 + seed) * 0.35 + rnd() * 0.65;
+      pts.push([t * this.w, this.h * base - bump * amp]);
+    }
+    return pts;
+  }
+
   /* ----------------------------------------------- 하늘·별·안개 굽기 */
   bake() {
     const p = this.phase;
@@ -168,6 +202,24 @@ class Sky {
     }
     c.globalAlpha = 1;
 
+    /* 지평선 능선 — 먼 산이 두 겹으로 겹쳐 하늘에 깊이를 준다 */
+    const drawRidge = (base, amp, seed, tint, alpha) => {
+      const pts = this.ridgeLine(seed, 26, amp, base);
+      c.beginPath();
+      c.moveTo(0, h);
+      c.lineTo(pts[0][0], pts[0][1]);
+      for (let i = 1; i < pts.length; i++) {
+        const [x0, y0] = pts[i - 1], [x1, y1] = pts[i];
+        c.quadraticCurveTo(x0, y0, (x0 + x1) / 2, (y0 + y1) / 2);
+      }
+      c.lineTo(w, h);
+      c.closePath();
+      c.fillStyle = rgba(tint, alpha);
+      c.fill();
+    };
+    drawRidge(0.965, h * 0.075, 7, shade(p.ridge, -0.55), 0.5);
+    drawRidge(1.0, h * 0.055, 91, shade(p.ridge, -0.75), 0.68);
+
     /* 지평선 안개 (FR-5.6) */
     const haze = c.createLinearGradient(0, h * 0.62, 0, h);
     haze.addColorStop(0, 'rgba(0,0,0,0)');
@@ -187,6 +239,12 @@ class Sky {
     this.shownLevel += (this.level - this.shownLevel) * Math.min(1, dt * speed);
     if (Math.abs(this.level - this.shownLevel) < 0.004) this.shownLevel = this.level;
     if (Math.abs(this.shownLevel - this.bakedLevel) > 0.05) this.bake();
+
+    for (const cl of this.clouds) {
+      cl.x += cl.vx * dt;
+      if (cl.x > 1.35) cl.x = -0.35;
+      if (cl.x < -0.35) cl.x = 1.35;
+    }
 
     for (const l of this.leaves) {
       l.y += l.vy * dt;
@@ -234,6 +292,7 @@ class Sky {
     c.clearRect(0, 0, w, h);
     c.drawImage(this.base, 0, 0, w, h);
 
+    this.drawClouds(c, p);
     this.drawMoon(c, p);
 
     /* 깜빡이는 밝은 별 (FR-5.2) */
@@ -256,6 +315,28 @@ class Sky {
 
     this.drawMeteors(c);
     this.drawLeaves(c, p);
+  }
+
+  /* 구름 — 별빛을 살짝 가리며 지나간다 (FR-5.4 결) */
+  drawClouds(c, p) {
+    const warm = mixHex(p.sky[2], p.starTint, 0.28);
+    for (const cl of this.clouds) {
+      const x = cl.x * this.w, y = cl.y * this.h;
+      const rw = cl.w * this.w, rh = cl.h * this.h;
+      const g = c.createRadialGradient(x, y, 0, x, y, Math.max(rw, rh));
+      g.addColorStop(0, rgba(warm, cl.alpha));
+      g.addColorStop(0.55, rgba(warm, cl.alpha * 0.45));
+      g.addColorStop(1, rgba(warm, 0));
+      c.save();
+      c.translate(x, y);
+      c.scale(1, rh / Math.max(rw, rh));
+      c.translate(-x, -y);
+      c.fillStyle = g;
+      c.beginPath();
+      c.arc(x, y, Math.max(rw, rh), 0, Math.PI * 2);
+      c.fill();
+      c.restore();
+    }
   }
 
   /* 달 (FR-5.3) */

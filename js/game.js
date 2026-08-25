@@ -152,6 +152,7 @@ class Game {
 
   updateDying(dt) {
     const d = this.dying;
+    if (!d) return this.gameOver();
     d.t += dt * 1000;
     const step = 42;                       // 한 줄이 부서지는 간격
     while (d.row >= CONFIG.BUFFER && d.t >= (CONFIG.TOTAL_ROWS - 1 - d.row) * step) {
@@ -349,6 +350,8 @@ class Game {
 
   updateClearing(dt) {
     const c = this.clearing;
+    // 상태와 데이터가 어긋난 채로 들어오면 조용히 제자리로 돌린다
+    if (!c) { this.state = this.engine.piece ? 'playing' : 'ready'; return; }
     c.t += dt * 1000;
     const half = CONFIG.CLEAR_ANIM * 0.42;
 
@@ -444,6 +447,14 @@ class Game {
     this.els.phase.textContent = p.name;
     this.els.phaseSub.textContent = p.subtitle;
 
+    // 밤이 얼마나 깊었는지 — 마지막 시각(서리 새벽)까지를 100%로 본다
+    const last = NIGHT_PHASES[NIGHT_PHASES.length - 1].at;
+    const depth = clamp((e.level - 1) / (last - 1), 0, 1);
+    this.els.nightFill.style.width = (depth * 100).toFixed(1) + '%';
+    this.els.night.setAttribute('aria-label',
+      `밤의 깊이 ${Math.round(depth * 100)}퍼센트 — ${p.name}`);
+    this.els.holdEmpty.hidden = !!this.engine.hold;
+
     // 화면을 못 보는 사람에게도 판이 어떻게 돌아가는지 전한다
     const held = this.engine.hold ? PIECES[this.engine.hold].name : '없음';
     this.els.holdText.textContent = `보관 중: ${held}`;
@@ -497,6 +508,7 @@ class Game {
         Glass.cell(ctx, x * s, (y - CONFIG.BUFFER) * s, s, key, {
           alpha: 0.94,
           flash: clearingRow ? flash : 0,
+          variant: (x * 3 + y * 5) % 3,     // 칸마다 빛이 닿는 자리를 달리한다
         });
       }
     }
@@ -620,6 +632,9 @@ class Game {
     o.classList.add('on');
     for (const el of o.querySelectorAll('[data-screen]')) {
       el.hidden = el.dataset.screen !== kind;
+    }
+    if (kind === 'paused' && this.els.pauseLore) {
+      this.els.pauseLore.textContent = PAUSE_LINES[randInt(0, PAUSE_LINES.length - 1)];
     }
     if (kind === 'gameover') {
       const e = this.engine;

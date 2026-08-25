@@ -18,8 +18,8 @@ const Glass = {
   _cache: new Map(),
   _cacheKey: '',
 
-  _sprite(key, s, bright) {
-    const id = `${key}|${s}|${bright ? 1 : 0}`;
+  _sprite(key, s, bright, variant) {
+    const id = `${key}|${s}|${bright ? 1 : 0}|${variant}`;
     let sp = this._cache.get(id);
     if (sp) return sp;
 
@@ -31,10 +31,10 @@ const Glass = {
     cv.height = Math.ceil(side * dpr);
     const c = cv.getContext('2d');
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
-    this._paint(c, pad, pad, s, key, { alpha: 1, bright, flash: 0 });
+    this._paint(c, pad, pad, s, key, { alpha: 1, bright, flash: 0, variant });
 
     sp = { canvas: cv, pad, side };
-    if (this._cache.size > 64) this._cache.clear();
+    if (this._cache.size > 128) this._cache.clear();
     this._cache.set(id, sp);
     return sp;
   },
@@ -56,7 +56,7 @@ const Glass = {
 
     // 섬광이 없고 고스트가 아니며 여백이 기본값이면 구워 둔 알을 쓴다
     if (!opt.ghost && !opt.flash && opt.pad === undefined && s >= 6) {
-      const sp = this._sprite(key, s, !!opt.bright);
+      const sp = this._sprite(key, s, !!opt.bright, (opt.variant | 0) % 3);
       const prev = ctx.globalAlpha;
       if (alpha < 1) ctx.globalAlpha = prev * alpha;
       ctx.drawImage(sp.canvas, px - sp.pad, py - sp.pad, sp.side, sp.side);
@@ -80,6 +80,12 @@ const Glass = {
 
     const bright = opt.bright ? 1 : 0;      // 조작 중인 조각은 더 진하고 밝게
     const flash = opt.flash || 0;           // 0~1, 줄이 부서지기 직전의 섬광
+    /* 같은 조각을 늘 똑같이 그리면 쌓였을 때 타일 무늬처럼 보인다.
+       빛이 닿는 자리를 세 갈래로 나눠 알마다 조금씩 다르게 만든다. */
+    const V = (opt.variant | 0) % 3;
+    const STREAK_X = [0.16, 0.27, 0.09][V];
+    const DOT = [[0.26, 0.24], [0.33, 0.20], [0.20, 0.30]][V];
+    const FACET_TILT = [0, 5, -5][V];
 
     ctx.save();
 
@@ -125,7 +131,7 @@ const Glass = {
     ctx.fillRect(x, y, w, h * 0.55);
 
     /* --- 5) 대각 반사 스트릭 ------------------------------------------ */
-    const sx = x + w * 0.16;
+    const sx = x + w * STREAK_X;
     ctx.beginPath();
     ctx.moveTo(sx, y + h);
     ctx.lineTo(sx + w * 0.24, y);
@@ -144,7 +150,7 @@ const Glass = {
        다른 결을 새겨 색 말고도 단서를 하나 더 준다. 깎은 유리처럼 보이는
        덤도 따라온다. */
     if (P.facet && s > 10) {
-      const rad = (P.facet.angle * Math.PI) / 180;
+      const rad = ((P.facet.angle + FACET_TILT) * Math.PI) / 180;
       const dx = Math.cos(rad), dy = Math.sin(rad);
       const cxm = x + w / 2, cym = y + h / 2;
       const span = (w + h) * 0.75;
@@ -178,7 +184,7 @@ const Glass = {
 
     /* 좌상단 점 하이라이트 — '알'로 보이게 하는 마지막 한 점 */
     if (s > 12) {
-      const px2 = x + w * 0.26, py2 = y + h * 0.24, pr = s * 0.10;
+      const px2 = x + w * DOT[0], py2 = y + h * DOT[1], pr = s * 0.10;
       const dot = ctx.createRadialGradient(px2, py2, 0, px2, py2, pr);
       dot.addColorStop(0, rgba('#ffffff', (0.55 + bright * 0.25) * alpha));
       dot.addColorStop(1, rgba('#ffffff', 0));
