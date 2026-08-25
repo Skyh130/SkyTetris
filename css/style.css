@@ -1,0 +1,461 @@
+/* =========================================================================
+ *  유리알의 밤 — 화면
+ *  UI 도 유리로 만든다. 다만 게임판보다 눈에 띄면 안 되므로
+ *  채도를 낮추고 테두리의 광택만 남긴다.
+ * ========================================================================= */
+
+:root {
+  --ink: #eaf0ff;
+  --ink-dim: rgba(226, 234, 255, 0.62);
+  --ink-faint: rgba(226, 234, 255, 0.38);
+  --glass: rgba(255, 255, 255, 0.045);
+  --glass-strong: rgba(255, 255, 255, 0.075);
+  --edge: rgba(198, 214, 255, 0.16);
+  --edge-bright: rgba(226, 238, 255, 0.34);
+  --radius: 14px;
+  --font: system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo',
+          'Noto Sans KR', 'Malgun Gothic', sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body {
+  background: #06091c;              /* 하늘 캔버스가 뜨기 전의 바탕 */
+  color: var(--ink);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  display: flex;
+  flex-direction: column;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+           env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+#sky {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  display: block;
+}
+
+/* ---------------------------------------------------------------- 제목 */
+.title-bar {
+  position: relative;
+  z-index: 2;
+  padding: 14px 20px 6px;
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.title-bar h1 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  color: rgba(238, 244, 255, 0.9);
+  text-shadow: 0 0 22px rgba(150, 190, 255, 0.35);
+}
+
+.phase-now {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-dim);
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+.phase-now span { letter-spacing: 0.12em; color: rgba(226, 238, 255, 0.82); }
+.phase-now em { font-style: normal; color: var(--ink-faint); font-size: 11px; }
+
+/* ---------------------------------------------------------------- 무대 */
+.stage {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 0 18px 14px;
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;   /* 패널을 필드 위쪽에 맞춘다 */
+  align-self: stretch;
+  gap: 12px;
+  width: 152px;
+  flex: none;
+}
+
+/* 유리 패널 */
+.box {
+  background: var(--glass);
+  border: 1px solid var(--edge);
+  border-radius: var(--radius);
+  padding: 10px 12px 12px;
+  backdrop-filter: blur(7px) saturate(1.15);
+  -webkit-backdrop-filter: blur(7px) saturate(1.15);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 10px 30px rgba(0, 0, 0, 0.28);
+}
+
+.box h2 {
+  margin: 0 0 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+}
+
+#hold, #next { display: block; margin: 0 auto; }
+
+/* 조작 안내 */
+.keys dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 5px 8px;
+  align-items: center;
+  font-size: 11px;
+}
+.keys dt { display: flex; gap: 3px; }
+.keys dd { margin: 0; color: var(--ink-dim); }
+
+kbd {
+  display: inline-block;
+  min-width: 17px;
+  padding: 1px 4px;
+  border-radius: 5px;
+  border: 1px solid var(--edge);
+  background: rgba(255, 255, 255, 0.06);
+  font: 500 10px/1.5 var(--font);
+  color: rgba(232, 240, 255, 0.86);
+  text-align: center;
+}
+
+/* 기록 */
+.stats dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 10px;
+  align-items: baseline;
+}
+.stats dt { font-size: 10px; letter-spacing: 0.14em; color: var(--ink-faint); }
+.stats dd {
+  margin: 0;
+  text-align: right;
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+  color: rgba(240, 246, 255, 0.95);
+  text-shadow: 0 0 16px rgba(140, 180, 255, 0.3);
+}
+
+.side-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.chip {
+  flex: 1;
+  min-width: 60px;
+  padding: 7px 6px;
+  border-radius: 9px;
+  border: 1px solid var(--edge);
+  background: var(--glass);
+  color: var(--ink-dim);
+  font: 500 11px var(--font);
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition: background 0.16s, color 0.16s, transform 0.08s;
+}
+.chip:hover { background: var(--glass-strong); color: var(--ink); }
+.chip:active, .chip.down { transform: translateY(1px); }
+.chip.off { color: rgba(226, 234, 255, 0.28); }
+
+/* ------------------------------------------------------------ 플레이필드 */
+.field {
+  position: relative;
+  flex: none;
+  border-radius: 16px;
+  border: 1px solid var(--edge-bright);
+  /* 아주 옅게만 덮는다 — 뒤의 하늘이 그대로 보여야 한다 (FR-4.1) */
+  background: linear-gradient(180deg,
+    rgba(10, 16, 42, 0.24), rgba(6, 10, 30, 0.34));
+  backdrop-filter: blur(2px) saturate(1.05);
+  -webkit-backdrop-filter: blur(2px) saturate(1.05);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 0 40px rgba(80, 120, 220, 0.06),
+    0 20px 60px rgba(0, 0, 0, 0.42);
+  overflow: hidden;
+  touch-action: none;
+}
+
+#board { display: block; }
+
+/* -------------------------------------------------------------- 알림 문구 */
+.toasts {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.toast {
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: rgba(8, 12, 32, 0.42);
+  border: 1px solid rgba(220, 232, 255, 0.16);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: rgba(238, 244, 255, 0.92);
+  text-shadow: 0 0 14px rgba(150, 190, 255, 0.5);
+  animation: toast-rise 1.6s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+  white-space: nowrap;
+}
+.toast.big {
+  font-size: 15px;
+  padding: 7px 20px;
+  letter-spacing: 0.1em;
+  border-color: rgba(230, 240, 255, 0.3);
+}
+
+@keyframes toast-rise {
+  0%   { opacity: 0; transform: translateY(14px) scale(0.94); }
+  16%  { opacity: 1; transform: translateY(0) scale(1); }
+  72%  { opacity: 1; transform: translateY(-8px); }
+  100% { opacity: 0; transform: translateY(-26px); }
+}
+
+/* 밤의 시각이 바뀔 때 (FR-5.7) */
+.banner {
+  position: absolute;
+  left: 0; right: 0;
+  top: 34%;
+  text-align: center;
+  pointer-events: none;
+  animation: banner-fade 2.6s ease-out forwards;
+}
+.banner strong {
+  display: block;
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: 0.34em;
+  text-indent: 0.34em;
+  color: rgba(244, 248, 255, 0.96);
+  text-shadow: 0 0 30px rgba(160, 200, 255, 0.75);
+}
+.banner span {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: rgba(226, 238, 255, 0.6);
+}
+
+@keyframes banner-fade {
+  0%   { opacity: 0; filter: blur(8px); transform: scale(1.06); }
+  18%  { opacity: 1; filter: blur(0); transform: scale(1); }
+  70%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-14px); }
+}
+
+/* --------------------------------------------------------------- 오버레이 */
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(4, 7, 22, 0.62);
+  backdrop-filter: blur(10px) saturate(1.1);
+  -webkit-backdrop-filter: blur(10px) saturate(1.1);
+}
+.overlay.on { display: flex; animation: fade-in 0.35s ease-out; }
+
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+.sheet { text-align: center; max-width: 360px; }
+
+.sheet h2 {
+  margin: 0 0 14px;
+  font-size: 19px;
+  font-weight: 500;
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+  color: rgba(244, 248, 255, 0.95);
+  text-shadow: 0 0 26px rgba(150, 195, 255, 0.5);
+}
+
+.lore {
+  margin: 0 0 20px;
+  font-size: 12px;
+  line-height: 2;
+  color: var(--ink-dim);
+  letter-spacing: 0.02em;
+}
+.lore em { font-style: normal; color: rgba(232, 242, 255, 0.86); }
+
+.cta {
+  padding: 11px 26px;
+  border-radius: 999px;
+  border: 1px solid rgba(226, 238, 255, 0.34);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(244, 248, 255, 0.96);
+  font: 500 13px/1 var(--font);
+  letter-spacing: 0.14em;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 0 26px rgba(130, 175, 255, 0.18),
+              inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: background 0.18s, box-shadow 0.18s, transform 0.09s;
+}
+.cta:hover {
+  background: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 0 38px rgba(150, 190, 255, 0.32),
+              inset 0 1px 0 rgba(255, 255, 255, 0.26);
+}
+.cta:active { transform: translateY(1px); }
+
+.hint { margin: 14px 0 0; font-size: 10.5px; color: var(--ink-faint); }
+
+.new-best {
+  margin: -4px 0 12px;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: #f5d67b;
+  text-shadow: 0 0 20px rgba(245, 214, 123, 0.6);
+}
+
+.final {
+  margin: 0 0 20px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 18px;
+  text-align: left;
+}
+.final dt { font-size: 10px; letter-spacing: 0.16em; color: var(--ink-faint); align-self: center; }
+.final dd {
+  margin: 0;
+  text-align: right;
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  color: rgba(240, 246, 255, 0.95);
+}
+
+/* ------------------------------------------------------------ 터치 조작 */
+.touchpad {
+  position: relative;
+  z-index: 2;
+  display: none;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 7px;
+  padding: 0 12px 14px;
+}
+
+.pad {
+  padding: 14px 0;
+  border-radius: 12px;
+  border: 1px solid var(--edge);
+  background: var(--glass);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  color: rgba(232, 240, 255, 0.82);
+  font: 500 13px/1 var(--font);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  transition: background 0.12s, transform 0.06s;
+}
+.pad.down { background: rgba(255, 255, 255, 0.16); transform: translateY(1px); }
+.pad.wide { grid-column: span 6; padding: 12px 0; letter-spacing: 0.16em; }
+
+/* ------------------------------------------------------------- 반응형 */
+@media (max-width: 860px) {
+  .title-bar { padding: 10px 14px 4px; }
+  .title-bar h1 { font-size: 14px; }
+
+  /* 홀드 · 넥스트 · 기록을 한 줄짜리 트레이로 묶고, 그 아래에 필드를 둔다.
+     세로 공간이 귀하므로 두 줄로 쌓지 않는다. */
+  .stage {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "tray-left tray-right"
+      "field     field";
+    align-content: center;
+    justify-items: center;
+    gap: 8px;
+    padding: 0 12px 8px;
+  }
+
+  .side {
+    flex-direction: row;
+    width: 100%;
+    gap: 8px;
+    align-items: stretch;
+    align-self: start;
+    justify-content: center;
+  }
+  .side.left { grid-area: tray-left; width: auto; }
+  .side.right { grid-area: tray-right; }
+  .field { grid-area: field; align-self: start; }
+
+  .side .box { padding: 6px 8px 8px; flex: none; min-width: 0; overflow: hidden; }
+  .side.right .box.stats { flex: 1 1 auto; }
+  .box h2 { margin-bottom: 4px; font-size: 9px; }
+  #hold, #next { max-width: 100%; }
+
+  .keys, .side-actions { display: none; }
+
+  .stats dl { grid-template-columns: repeat(4, 1fr); gap: 2px 6px; }
+  .stats dt { grid-row: 1; text-align: center; white-space: nowrap; font-size: 9px; letter-spacing: 0.06em; }
+  .stats dd { grid-row: 2; font-size: 14px; text-align: center; }
+
+  .touchpad { display: grid; }
+  .sheet { max-width: 280px; }
+  .lore { font-size: 11px; line-height: 1.9; }
+  .banner strong { font-size: 20px; }
+}
+
+@media (max-width: 380px) {
+  .pad { padding: 11px 0; font-size: 12px; }
+}
+
+/* 세로 공간이 아주 좁을 때 (가로로 돌린 폰) */
+@media (max-height: 520px) and (max-width: 860px) {
+  .title-bar { display: none; }
+  .touchpad { padding-bottom: 6px; }
+  .pad { padding: 9px 0; }
+}
+
+/* NFR-7 — 움직임을 줄여 달라는 설정을 존중한다 */
+@media (prefers-reduced-motion: reduce) {
+  .toast, .banner, .overlay.on { animation-duration: 0.01ms; animation-iteration-count: 1; }
+  .toast, .banner { opacity: 1; }
+}
