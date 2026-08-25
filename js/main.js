@@ -24,6 +24,9 @@
     finalLevel: $('final-level'),
     finalPhase: $('final-phase'),
     newBest: $('new-best'),
+    live: $('live'),
+    holdText: $('hold-text'),
+    nextText: $('next-text'),
   };
 
   const missing = Object.entries(els).filter(([, v]) => !v).map(([k]) => k);

@@ -23,8 +23,9 @@
   <!-- 왼쪽: 홀드 + 조작 안내 -->
   <aside class="side left">
     <section class="box">
-      <h2>홀드</h2>
-      <canvas id="hold"></canvas>
+      <h2 id="hold-label">홀드</h2>
+      <canvas id="hold" role="img" aria-labelledby="hold-label" aria-describedby="hold-text"></canvas>
+      <p class="sr-only" id="hold-text">보관 중인 조각 없음</p>
     </section>
 
     <section class="box keys" aria-label="조작 안내">
@@ -45,7 +46,9 @@
 
   <!-- 가운데: 플레이필드 -->
   <main class="field" id="field">
-    <canvas id="board" aria-label="테트리스 플레이필드"></canvas>
+    <canvas id="board" role="img"
+      aria-label="플레이필드. 조작은 방향키와 스페이스바를 씁니다."></canvas>
+    <p class="sr-only" id="live" role="status" aria-live="polite"></p>
     <div class="toasts" id="toasts" aria-live="polite"></div>
 
     <div class="overlay" id="overlay">
@@ -86,16 +89,17 @@
   <!-- 오른쪽: 넥스트 + 기록 -->
   <aside class="side right">
     <section class="box">
-      <h2>넥스트</h2>
-      <canvas id="next"></canvas>
+      <h2 id="next-label">넥스트</h2>
+      <canvas id="next" role="img" aria-labelledby="next-label" aria-describedby="next-text"></canvas>
+      <p class="sr-only" id="next-text">다음 조각을 불러오는 중</p>
     </section>
 
     <section class="box stats">
       <dl>
-        <dt>점수</dt><dd id="score">0</dd>
-        <dt>최고</dt><dd id="best">0</dd>
-        <dt>레벨</dt><dd id="level">1</dd>
-        <dt>줄</dt><dd id="lines">0</dd>
+        <dt id="t-score">점수</dt><dd id="score" aria-labelledby="t-score">0</dd>
+        <dt id="t-best">최고</dt><dd id="best" aria-labelledby="t-best">0</dd>
+        <dt id="t-level">레벨</dt><dd id="level" aria-labelledby="t-level">1</dd>
+        <dt id="t-lines">줄</dt><dd id="lines" aria-labelledby="t-lines">0</dd>
       </dl>
     </section>
 

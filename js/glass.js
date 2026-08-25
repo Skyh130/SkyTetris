@@ -138,6 +138,29 @@ const Glass = {
     ctx.fillStyle = st;
     ctx.fill();
 
+    /* --- 5.5) 조각마다 다른 '결' --------------------------------------
+       색만으로 조각을 구분하면 색을 잘 구분하지 못하는 사람에게는
+       S(이끼결)와 Z(단풍잎)가 같은 조각이 된다. 조각마다 각도와 개수가
+       다른 결을 새겨 색 말고도 단서를 하나 더 준다. 깎은 유리처럼 보이는
+       덤도 따라온다. */
+    if (P.facet && s > 10) {
+      const rad = (P.facet.angle * Math.PI) / 180;
+      const dx = Math.cos(rad), dy = Math.sin(rad);
+      const cxm = x + w / 2, cym = y + h / 2;
+      const span = (w + h) * 0.75;
+      const gap = h / (P.facet.n + 1);
+      ctx.lineWidth = Math.max(0.6, s * 0.028);
+      ctx.strokeStyle = rgba('#ffffff', (0.16 + bright * 0.10) * alpha);
+      ctx.beginPath();
+      for (let i = 1; i <= P.facet.n; i++) {
+        const off = (i - (P.facet.n + 1) / 2) * gap;
+        const ox2 = cxm - dy * off, oy2 = cym + dx * off;
+        ctx.moveTo(ox2 - dx * span, oy2 - dy * span);
+        ctx.lineTo(ox2 + dx * span, oy2 + dy * span);
+      }
+      ctx.stroke();
+    }
+
     /* 바닥에 고이는 색 — 유리 아래쪽이 더 짙어 보이게 */
     const pool = ctx.createLinearGradient(0, y + h * 0.62, 0, y + h);
     pool.addColorStop(0, rgba(P.glow, 0));

@@ -137,6 +137,17 @@ const Sfx = {
     if (b2b) this.tone(this.note(9, base), { dur: 1.0, gain: 0.06, when: 0.22, send: 0.9 });
   },
 
+  /* 퍼펙트 클리어 — 이 게임에서 가장 드문 순간이므로 가장 길게 울린다 */
+  perfectClear() {
+    [0, 2, 4, 5, 7, 9].forEach((i, k) => {
+      this.tone(this.note(i, 523.25), {
+        dur: 1.6, gain: 0.085, when: k * 0.075, harmonic: 0.5, send: 1,
+      });
+    });
+    this.tone(this.note(0, 261.6), { dur: 2.0, gain: 0.07, type: 'triangle', send: 0.8 });
+    this.noise(0.4, 0.05, 4200);
+  },
+
   levelUp() {
     [0, 2, 4, 6].forEach((i, k) => {
       this.tone(this.note(i, 392.0), { dur: 0.8, gain: 0.075, when: k * 0.10, send: 0.8 });

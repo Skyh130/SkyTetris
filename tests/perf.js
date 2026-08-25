@@ -167,6 +167,67 @@ const log = (k, v) => { out[k] = v; };
   });
   log('soak', soak);
 
+  /* --------------------------------------------- 6.5 견고함 (엣지케이스) */
+  const robust = await page.evaluate(async () => {
+    const g = window.glassNight;
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const notes = [];
+    const fail = (m) => notes.push(m);
+
+    // (a) 플레이 도중 창 크기가 바뀌어도 상태가 유지되는가
+    g.restart();
+    await wait(120);
+    const before = g.state;
+    g.layout(); g.layout();
+    if (g.state !== before) fail('크기 변경 후 상태가 바뀜');
+    if (!(g.cell > 0)) fail('크기 변경 후 칸 크기가 이상함');
+
+    // (b) 줄 삭제 연출 중 일시정지 → 재개하면 연출이 이어지는가
+    g.restart();
+    const e = g.engine;
+    for (let x = 1; x < 10; x++) e.board[21][x] = 'J';
+    e.piece = new Piece('I'); e.piece.rot = 1; e.piece.x = -2; e.piece.y = 18;
+    g.lockNow();
+    if (g.state !== 'clearing') fail('줄 삭제 후 clearing 으로 가지 않음');
+    g.togglePause();
+    if (g.state !== 'paused') fail('연출 중 일시정지 실패');
+    await wait(200);
+    if (g.state !== 'paused') fail('일시정지가 풀림');
+    g.togglePause();
+    if (g.state !== 'clearing') fail('재개 후 연출로 돌아오지 않음');
+    await wait(CONFIG.CLEAR_ANIM + 220);
+    if (g.state !== 'playing') fail('연출이 끝나고 playing 으로 가지 않음: ' + g.state);
+
+    // (c) 소멸 연출 중 재시작 연타
+    g.startDeath();
+    for (let i = 0; i < 6; i++) { g.restart(); await wait(16); }
+    if (g.state !== 'playing') fail('소멸 중 재시작 연타 후 상태: ' + g.state);
+    if (g.dying) fail('재시작 후에도 소멸 연출이 남음');
+
+    // (d) 홀드 연타 — 조각당 한 번만
+    g.restart(); await wait(60);
+    let swaps = 0;
+    const key0 = g.engine.piece.key;
+    for (let i = 0; i < 8; i++) { const h = g.engine.hold; g.hold(); if (g.engine.hold !== h) swaps++; }
+    if (swaps !== 1) fail(`홀드 연타로 ${swaps}회 교체됨 (1회여야 함)`);
+
+    // (e) 탭 숨김/복귀
+    g.restart(); await wait(60);
+    document.dispatchEvent(new Event('visibilitychange'));
+    await wait(40);
+
+    // (f) 준비 화면에서 게임 키를 눌러도 조용히 넘어가는가
+    g.state = 'ready';
+    for (const c of ['ArrowLeft', 'Space', 'KeyC', 'ArrowUp']) {
+      window.dispatchEvent(new KeyboardEvent('keydown', { code: c }));
+      window.dispatchEvent(new KeyboardEvent('keyup', { code: c }));
+    }
+    g.restart();
+
+    return { issues: notes };
+  });
+  log('robust', robust);
+
   /* --------------------------------------------- 7. 폭별 레이아웃 */
   const widths = [320, 360, 390, 430, 540, 768, 860, 1024, 1280, 1600, 1920];
   const layout = [];
@@ -233,6 +294,7 @@ const log = (k, v) => { out[k] = v; };
     if (l.clipped) f.push(`글자잘림${l.clipped}`);
     if (f.length) bad.push(`${l.w}px: ${f.join(', ')}`);
   }
+  for (const i of (out.robust ? out.robust.issues : [])) bad.push('견고함: ' + i);
   if (errors.length) bad.push(`예외 ${errors.length}건: ${errors.slice(0, 3).join(' | ')}`);
 
   console.log('\n\x1b[36m측정 결과\x1b[0m');
@@ -242,6 +304,7 @@ const log = (k, v) => { out[k] = v; };
   console.log(' 연출중입력  ', JSON.stringify(out.inputDuringClear));
   console.log(' 난이도곡선  ', JSON.stringify({ monotone: out.difficulty.monotone, minRatio: out.difficulty.minRatio }));
   console.log(' 자동플레이  ', JSON.stringify(out.soak));
+  console.log(' 견고함      ', out.robust.issues.length ? out.robust.issues.join(' | ') : '문제 없음');
   console.log(' 레이아웃    ', out.layout.map((l) => `${l.w}:${l.cell}`).join(' '));
   console.log(`\n${bad.length ? '\x1b[31m문제 ' + bad.length + '건\x1b[0m' : '\x1b[32m문제 없음\x1b[0m'}`);
   for (const b of bad) console.log('  \x1b[31m·\x1b[0m ' + b);

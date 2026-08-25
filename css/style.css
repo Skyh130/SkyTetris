@@ -252,9 +252,13 @@ kbd {
 .banner {
   position: absolute;
   left: 0; right: 0;
-  top: 34%;
+  top: 30%;
+  padding: 18px 0 22px;
   text-align: center;
   pointer-events: none;
+  /* 쌓인 알 위에 글자가 걸쳐도 읽히도록 뒤에 은은한 어둠을 깐다 */
+  background: radial-gradient(60% 100% at 50% 50%,
+    rgba(4, 7, 22, 0.72), rgba(4, 7, 22, 0.34) 55%, rgba(4, 7, 22, 0));
   animation: banner-fade 2.6s ease-out forwards;
 }
 .banner strong {
@@ -364,6 +368,36 @@ kbd {
   font-variant-numeric: tabular-nums;
   color: rgba(240, 246, 255, 0.95);
 }
+
+/* --------------------------------------------------- 접근성 보조 */
+
+/* 화면에서는 안 보이지만 스크린리더는 읽는 텍스트 */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* 키보드로 옮겨 다닐 때 지금 어디에 있는지 분명히 보이게 */
+:focus-visible {
+  outline: 2px solid rgba(190, 220, 255, 0.9);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+.cta:focus-visible,
+.chip:focus-visible,
+.pad:focus-visible {
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(140, 185, 255, 0.22),
+              0 0 30px rgba(150, 190, 255, 0.4);
+}
+/* 마우스·터치로 눌렀을 때는 링을 띄우지 않는다 */
+button:focus:not(:focus-visible) { outline: none; }
 
 /* ------------------------------------------------------------ 터치 조작 */
 .touchpad {

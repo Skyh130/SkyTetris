@@ -27,6 +27,7 @@ class Game {
     this.lockResets = 0;
     this.softDropping = false;
     this.clearing = null;
+    this.dying = null;        // 게임이 끝날 때 아래에서부터 부서지는 연출
     this.pending = [];        // 연출 중에 눌린 조작을 잠시 모아 두는 곳
     this.shake = 0;
     this.time = 0;
@@ -101,18 +102,21 @@ class Game {
     this.engine.reset();
     this.fx.clear();
     this.clearing = null;
+    this.dying = null;
     this.pending.length = 0;
     this.dropTimer = 0;
     this.lockTimer = 0;
     this.lockResets = 0;
     this.softDropping = false;
     this.shake = 0;
+    this._deathSounded = false;
     this.sky.setLevel(1);
     this.sky.shownLevel = 1;
     this.engine.spawn();
     this.state = 'playing';
     this.hideOverlay();
     this.syncHud();
+    this.say('시작. 해거름, 아직 서쪽이 붉다');
     Sfx.resume();
   }
 
@@ -128,19 +132,57 @@ class Game {
   }
 
   restart() {
-    if (this.state === 'ready') this.start();
-    else { this.state = 'ready'; this.start(); }
+    this._deathSounded = false;
+    this.start();
+  }
+
+  /* 끝나는 순간을 한 프레임에 지우지 않는다.
+     쌓인 유리알이 아래에서부터 차례로 부서지고 나서 결과를 보여 준다. */
+  startDeath() {
+    if (this.state === 'dying' || this.state === 'gameover') return;
+    this.state = 'dying';
+    this.dying = { t: 0, row: CONFIG.TOTAL_ROWS - 1 };
+    this.engine.piece = null;
+    this.clearing = null;
+    this.pending.length = 0;
+    this.els.toasts.replaceChildren();
+    Sfx.gameOver();
+    this._deathSounded = true;
+  }
+
+  updateDying(dt) {
+    const d = this.dying;
+    d.t += dt * 1000;
+    const step = 42;                       // 한 줄이 부서지는 간격
+    while (d.row >= CONFIG.BUFFER && d.t >= (CONFIG.TOTAL_ROWS - 1 - d.row) * step) {
+      const y = d.row;
+      for (let x = 0; x < CONFIG.COLS; x++) {
+        const key = this.engine.board[y][x];
+        if (!key) continue;
+        this.fx.shatter((x + 0.5) * this.cell,
+          (y - CONFIG.BUFFER + 0.5) * this.cell, this.cell, key, 0.7);
+        this.engine.board[y][x] = null;
+      }
+      d.row--;
+    }
+    if (d.row < CONFIG.BUFFER && d.t > (CONFIG.TOTAL_ROWS - CONFIG.BUFFER) * step + 260) {
+      this.dying = null;
+      this.gameOver();
+    }
   }
 
   gameOver() {
     this.state = 'gameover';
-    Sfx.gameOver();
+    this.dying = null;
+    if (!this._deathSounded) Sfx.gameOver();
     if (this.engine.score > this.best) {
       this.best = this.engine.score;
       localStorage.setItem(STORAGE_KEY, String(this.best));
       this.newBest = true;
     } else this.newBest = false;
     this.syncHud();
+    this.say(`게임 종료. 점수 ${this.engine.score.toLocaleString('ko-KR')}점, `
+      + `${this.engine.lines}줄, 레벨 ${this.engine.level}`);
     this.showOverlay('gameover');
   }
 
@@ -157,8 +199,8 @@ class Game {
   applyPending() {
     if (!this.pending.length) return;
     const now = performance.now();
-    const window = CONFIG.CLEAR_ANIM + 220;   // 연출이 끝날 때까지는 살아 있어야 한다
-    const queued = this.pending.filter((p) => now - p.at < window);
+    const keepFor = CONFIG.CLEAR_ANIM + 220;  // 연출이 끝날 때까지는 살아 있어야 한다
+    const queued = this.pending.filter((p) => now - p.at < keepFor);
     this.pending.length = 0;
     for (const { action } of queued) {
       if (action === 'left') this.moveH(-1);
@@ -219,7 +261,7 @@ class Game {
       Sfx.hold();
       this.lockTimer = 0;
       this.lockResets = 0;
-      if (this.engine.gameOver) this.gameOver();
+      if (this.engine.gameOver) this.startDeath();
       this.syncHud();
     }
   }
@@ -243,6 +285,7 @@ class Game {
 
     if (this.state === 'playing') this.updatePlaying(dt);
     else if (this.state === 'clearing') this.updateClearing(dt);
+    else if (this.state === 'dying') this.updateDying(dt);
   }
 
   updatePlaying(dt) {
@@ -298,8 +341,8 @@ class Game {
     } else {
       Sfx.lock();
       if (result.tspin) this.announce(result);
-      if (this.engine.gameOver) return this.gameOver();
-      if (!this.engine.spawn()) return this.gameOver();
+      if (this.engine.gameOver) return this.startDeath();
+      if (!this.engine.spawn()) return this.startDeath();
     }
     this.syncHud();
   }
@@ -327,8 +370,22 @@ class Game {
     if (c.t >= CONFIG.CLEAR_ANIM) {
       this.engine.removeRows(c.rows);
       this.clearing = null;
-      if (this.engine.gameOver) return this.gameOver();
-      if (!this.engine.spawn()) return this.gameOver();
+
+      // 바닥을 통째로 비웠다 — 이 게임에서 가장 드물고 아름다운 순간
+      if (this.engine.isBoardEmpty()) {
+        const bonus = this.engine.awardPerfectClear(c.rows.length);
+        Sfx.perfectClear();
+        this.banner('하늘이 전부 열렸다', `퍼펙트 클리어 · +${bonus.toLocaleString('ko-KR')}`);
+        this.say(`퍼펙트 클리어. 보너스 ${bonus.toLocaleString('ko-KR')}점`);
+        for (let i = 0; i < 26; i++) {
+          this.fx.spark(rand(0, CONFIG.COLS) * this.cell,
+            rand(CONFIG.ROWS * 0.35, CONFIG.ROWS) * this.cell,
+            this.cell * 1.6, PIECE_KEYS[randInt(0, 6)]);
+        }
+        this.shake = Math.max(this.shake, 5);
+      }
+      if (this.engine.gameOver) return this.startDeath();
+      if (!this.engine.spawn()) return this.startDeath();
       this.state = 'playing';
       this.applyPending();
       this.syncHud();
@@ -340,6 +397,7 @@ class Game {
     this.sky.setLevel(this.engine.level);
     const p = phaseAt(this.engine.level);
     this.banner(p.name, p.subtitle);            // FR-5.7
+    this.say(`레벨 ${this.engine.level}. 밤이 깊어졌다 — ${p.name}, ${p.subtitle}`);
   }
 
   /* --------------------------------------------------------------- 연출 */
@@ -351,7 +409,9 @@ class Game {
     else if (flavour) lines.push(flavour[randInt(0, flavour.length - 1)]);
     if (result.b2b) lines.push(CLEAR_LINES.b2b[0]);
     if (result.combo > 0) lines.push(`${result.combo} 콤보`);
-    this.toast(lines.join(' · '), result.cleared >= 4 || result.tspin ? 'big' : '');
+    const text = lines.join(' · ');
+    this.toast(text, result.cleared >= 4 || result.tspin ? 'big' : '');
+    this.say(`${text}. 점수 ${this.engine.score.toLocaleString('ko-KR')}점`);
   }
 
   toast(text, cls = '') {
@@ -383,6 +443,19 @@ class Game {
     this.els.lines.textContent = e.lines;
     this.els.phase.textContent = p.name;
     this.els.phaseSub.textContent = p.subtitle;
+
+    // 화면을 못 보는 사람에게도 판이 어떻게 돌아가는지 전한다
+    const held = this.engine.hold ? PIECES[this.engine.hold].name : '없음';
+    this.els.holdText.textContent = `보관 중: ${held}`;
+    this.els.nextText.textContent = '다음 순서: '
+      + this.engine.queue.slice(0, this.nextCount || CONFIG.NEXT_COUNT)
+        .map((k) => PIECES[k].name).join(', ');
+  }
+
+  /* 지금 무슨 일이 일어났는지 한 줄로 알린다 (role="status") */
+  say(text) {
+    if (!text || !this.els.live) return;
+    this.els.live.textContent = text;
   }
 
   /* -------------------------------------------------------------- 그리기 */
@@ -428,16 +501,50 @@ class Game {
       }
     }
 
+    if (clearRows && !this.clearing.shattered) this.drawSweep(ctx, clearRows, s, w);
+
     if (e.piece && (this.state === 'playing' || this.state === 'paused')) {
       const gy = e.ghostY();
       const ghost = e.piece.clone();
       ghost.y = gy;
       Glass.piece(ctx, ghost, 0, 0, s, { ghost: true, alpha: 1 });   // FR-1.5
       Glass.piece(ctx, e.piece, 0, 0, s, { bright: true, alpha: 1 });
+
+      // 곧 굳는다는 신호 — 바닥에 닿아 있는 동안 알이 서서히 달아오른다
+      const settle = e.collides(e.piece, 0, 1)
+        ? clamp(this.lockTimer / CONFIG.LOCK_DELAY, 0, 1) : 0;
+      if (settle > 0.05) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = settle * settle * 0.34;
+        Glass.piece(ctx, e.piece, 0, 0, s, { bright: true, alpha: 1 });
+        ctx.restore();
+      }
     }
 
     this.fx.draw(ctx);
     this.drawDanger(ctx, w, h);
+    ctx.restore();
+  }
+
+  /* 부서지기 직전, 지워질 줄 위로 빛 한 줄기가 훑고 지나간다. */
+  drawSweep(ctx, rows, s, w) {
+    const k = clamp(this.clearing.t / (CONFIG.CLEAR_ANIM * 0.42), 0, 1);
+    const head = k * (w + s * 3) - s * 1.5;   // 등속이라야 눈에 남는다
+    const tail = s * 3.2;                     // 뒤로 끌리는 꼬리
+    const fade = 1 - k * 0.25;
+    const g = ctx.createLinearGradient(head - tail, 0, head + s * 0.5, 0);
+    g.addColorStop(0.00, 'rgba(255,255,255,0)');
+    g.addColorStop(0.55, `rgba(190,225,255,${0.22 * fade})`);
+    g.addColorStop(0.88, `rgba(255,255,255,${0.62 * fade})`);
+    g.addColorStop(0.97, `rgba(255,255,255,${0.95 * fade})`);
+    g.addColorStop(1.00, 'rgba(255,255,255,0)');
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = g;
+    for (const y of rows) {
+      ctx.fillRect(head - tail, (y - CONFIG.BUFFER) * s, tail + s * 0.5, s);
+    }
     ctx.restore();
   }
 

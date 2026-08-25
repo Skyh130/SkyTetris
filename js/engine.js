@@ -77,7 +77,7 @@ class Engine {
     this.gameOver = false;
     this.lastAction = null;   // 'move' | 'rotate' — T-스핀 판정에 쓴다
     this.lastKick = 0;
-    this.stats = { pieces: 0, tspins: 0, tetris: 0, maxCombo: 0 };
+    this.stats = { pieces: 0, tspins: 0, tetris: 0, maxCombo: 0, perfect: 0 };
   }
 
   /* --------------------------------------------------------------- 충돌 */
@@ -275,6 +275,20 @@ class Engine {
       keep.unshift(new Array(CONFIG.COLS).fill(null));
     }
     this.board = keep;
+  }
+
+  /* 바닥이 완전히 비었는가 (퍼펙트 클리어) */
+  isBoardEmpty() {
+    return this.board.every((row) => row.every((c) => c === null));
+  }
+
+  /* 퍼펙트 클리어 보상. 줄 삭제 점수와 별도로 얹는다. */
+  awardPerfectClear(cleared) {
+    const base = PERFECT_CLEAR[Math.min(cleared, PERFECT_CLEAR.length - 1)] || 0;
+    const gained = base * this.level;
+    this.score += gained;
+    this.stats.perfect = (this.stats.perfect || 0) + 1;
+    return gained;
   }
 
   addDropScore(cells, hard) {

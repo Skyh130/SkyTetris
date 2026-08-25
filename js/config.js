@@ -14,7 +14,7 @@ const CONFIG = {
   ARR: 40,               // ms, 자동 반복 간격
   SOFT_DROP_FACTOR: 20,  // 소프트 드롭 시 중력 배율
   NEXT_COUNT: 5,
-  CLEAR_ANIM: 380,       // ms, 줄이 부서지는 연출 길이
+  CLEAR_ANIM: 420,       // ms, 줄이 부서지는 연출 길이
   LINES_PER_LEVEL: 10,
 };
 
@@ -37,6 +37,7 @@ const PIECES = {
     name: '서리결',
     lore: '첫서리가 길게 내려앉은 자리. 네 줄을 한 번에 거둔다.',
     color: '#7FE7E0', glow: '#35CFC6',
+    facet: { n: 3, angle: 0 },   // 길게 누운 서리 결
     size: 4,
     cells: [[0, 1], [1, 1], [2, 1], [3, 1]],
   },
@@ -44,6 +45,7 @@ const PIECES = {
     name: '달빛알',
     lore: '보름달이 물에 비쳐 그대로 굳은 알. 어느 쪽으로 돌려도 같은 얼굴이다.',
     color: '#F5D67B', glow: '#DDB03F',
+    facet: { n: 1, angle: 90 },   // 한가운데를 가르는 달빛
     size: 2,
     cells: [[0, 0], [1, 0], [0, 1], [1, 1]],
   },
@@ -51,6 +53,7 @@ const PIECES = {
     name: '자수정',
     lore: '밤이 가장 깊을 때만 캐낼 수 있다. 좁은 틈으로 비틀어 들어가는 재주가 있다.',
     color: '#C79BF0', glow: '#9A5FD6',
+    facet: { n: 2, angle: 62 },   // 비스듬히 선 결정면
     size: 3,
     cells: [[1, 0], [0, 1], [1, 1], [2, 1]],
   },
@@ -58,6 +61,7 @@ const PIECES = {
     name: '이끼결',
     lore: '돌 그늘에서 자란 초록. 언제나 비스듬히만 눕는다.',
     color: '#93E39B', glow: '#4CC25C',
+    facet: { n: 2, angle: -38 },   // 왼쪽으로 누운 잎맥
     size: 3,
     cells: [[1, 0], [2, 0], [0, 1], [1, 1]],
   },
@@ -65,6 +69,7 @@ const PIECES = {
     name: '단풍잎',
     lore: '떨어지다 말고 그대로 굳어버린 잎. 이끼결과는 서로 등을 돌린 사이.',
     color: '#FF8F8F', glow: '#E04D4D',
+    facet: { n: 2, angle: 38 },   // 오른쪽으로 누운 잎맥
     size: 3,
     cells: [[0, 0], [1, 0], [1, 1], [2, 1]],
   },
@@ -72,6 +77,7 @@ const PIECES = {
     name: '쪽빛',
     lore: '해가 완전히 진 직후, 하늘에서 가장 짙어지는 자리의 색.',
     color: '#8FA9FF', glow: '#4F6FE6',
+    facet: { n: 1, angle: -72 },   // 깊게 팬 한 줄
     size: 3,
     cells: [[0, 0], [0, 1], [1, 1], [2, 1]],
   },
@@ -79,6 +85,7 @@ const PIECES = {
     name: '감빛',
     lore: '서리 맞은 감이 끝까지 품고 있던 온기. 쪽빛과 마주 보면 벽이 된다.',
     color: '#FFB067', glow: '#E87D28',
+    facet: { n: 3, angle: 72 },   // 세 겹으로 겹친 결
     size: 3,
     cells: [[2, 0], [0, 1], [1, 1], [2, 1]],
   },
@@ -169,6 +176,9 @@ const NIGHT_PHASES = [
   },
 ];
 
+/* 바닥을 완전히 비웠을 때(퍼펙트 클리어)의 보상. 가이드라인 값을 따른다. */
+const PERFECT_CLEAR = [0, 800, 1200, 1800, 2000];
+
 /* 줄을 지웠을 때 뜨는 한 줄 — 세계관을 게임 안에서 말해 주는 자리. */
 const CLEAR_LINES = {
   1: ['한 줄이 부서졌다', '별빛으로 흩어진다'],
@@ -177,4 +187,5 @@ const CLEAR_LINES = {
   4: ['서리결이 지나갔다', '네 줄, 한 호흡에'],
   tspin: ['자수정이 비틀려 들어갔다'],
   b2b: ['끊기지 않았다'],
+  perfect: ['바닥이 비었다 · 하늘이 전부 열렸다'],
 };
