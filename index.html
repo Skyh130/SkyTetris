@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0b1030">
+<meta name="description" content="짙어가는 가을 밤하늘 아래, 유리알처럼 맑고 투명한 블록을 쌓는 웹 테트리스.">
+<title>유리알의 밤 · Glass Night Tetris</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- 뒤쪽: 밤하늘. 앞쪽 게임 캔버스는 투명해서 이 하늘이 그대로 비친다. (FR-4.1) -->
+<canvas id="sky" aria-hidden="true"></canvas>
+
+<header class="title-bar">
+  <h1>유리알의 밤</h1>
+  <p class="phase-now"><span id="phase">해거름</span><em id="phase-sub">아직 서쪽이 붉다</em></p>
+</header>
+
+<div class="stage">
+
+  <!-- 왼쪽: 홀드 + 조작 안내 -->
+  <aside class="side left">
+    <section class="box">
+      <h2>홀드</h2>
+      <canvas id="hold"></canvas>
+    </section>
+
+    <section class="box keys" aria-label="조작 안내">
+      <h2>조작</h2>
+      <dl>
+        <dt><kbd>←</kbd><kbd>→</kbd></dt><dd>이동</dd>
+        <dt><kbd>↓</kbd></dt><dd>천천히</dd>
+        <dt><kbd>Space</kbd></dt><dd>단숨에</dd>
+        <dt><kbd>↑</kbd><kbd>X</kbd></dt><dd>시계 회전</dd>
+        <dt><kbd>Z</kbd></dt><dd>반시계</dd>
+        <dt><kbd>C</kbd></dt><dd>홀드</dd>
+        <dt><kbd>P</kbd></dt><dd>일시정지</dd>
+        <dt><kbd>R</kbd></dt><dd>다시</dd>
+        <dt><kbd>M</kbd></dt><dd>소리</dd>
+      </dl>
+    </section>
+  </aside>
+
+  <!-- 가운데: 플레이필드 -->
+  <main class="field" id="field">
+    <canvas id="board" aria-label="테트리스 플레이필드"></canvas>
+    <div class="toasts" id="toasts" aria-live="polite"></div>
+
+    <div class="overlay" id="overlay">
+      <div class="sheet" data-screen="ready">
+        <h2>유리알의 밤</h2>
+        <p class="lore">
+          가을이 다 저문 어느 밤,<br>하늘에서 유리알이 떨어진다.<br><br>
+          첫서리가 앉은 자리, 물에 비친 보름달,<br>떨어지다 굳어버린 단풍잎.<br><br>
+          한 줄을 온전히 메우면<br>조각들은 다시 별빛으로 흩어지고,<br>그만큼 하늘이 열린다.<br><br>
+          <em>오래 버틸수록 밤은 깊어진다.</em>
+        </p>
+        <button class="cta" data-action="start">밤을 시작한다</button>
+        <p class="hint">키보드 <kbd>Enter</kbd> · 화면을 가볍게 눌러도 시작합니다</p>
+      </div>
+
+      <div class="sheet" data-screen="paused" hidden>
+        <h2>잠시 멈춤</h2>
+        <p class="lore">하늘도 함께 멈춰 있다.</p>
+        <button class="cta" data-action="resume">이어서</button>
+        <p class="hint"><kbd>P</kbd> 또는 <kbd>Esc</kbd></p>
+      </div>
+
+      <div class="sheet" data-screen="gameover" hidden>
+        <h2>밤이 걷혔다</h2>
+        <p class="new-best" id="new-best" hidden>새로운 최고 기록</p>
+        <dl class="final">
+          <dt>점수</dt><dd id="final-score">0</dd>
+          <dt>지운 줄</dt><dd id="final-lines">0</dd>
+          <dt>레벨</dt><dd id="final-level">1</dd>
+          <dt>다다른 시각</dt><dd id="final-phase">해거름</dd>
+        </dl>
+        <button class="cta" data-action="restart">다시 한 번</button>
+        <p class="hint"><kbd>R</kbd></p>
+      </div>
+    </div>
+  </main>
+
+  <!-- 오른쪽: 넥스트 + 기록 -->
+  <aside class="side right">
+    <section class="box">
+      <h2>넥스트</h2>
+      <canvas id="next"></canvas>
+    </section>
+
+    <section class="box stats">
+      <dl>
+        <dt>점수</dt><dd id="score">0</dd>
+        <dt>최고</dt><dd id="best">0</dd>
+        <dt>레벨</dt><dd id="level">1</dd>
+        <dt>줄</dt><dd id="lines">0</dd>
+      </dl>
+    </section>
+
+    <div class="side-actions">
+      <button class="chip" data-action="pause">일시정지</button>
+      <button class="chip" data-action="restart">다시</button>
+      <button class="chip" data-action="mute" aria-pressed="false">
+        <span class="label">소리 켜짐</span>
+      </button>
+    </div>
+  </aside>
+</div>
+
+<!-- 모바일 조작 (FR-3) -->
+<nav class="touchpad" aria-label="터치 조작">
+  <button class="pad" data-action="hold" aria-label="홀드">홀드</button>
+  <button class="pad" data-action="ccw" aria-label="반시계 회전">↺</button>
+  <button class="pad" data-action="left" aria-label="왼쪽">◀</button>
+  <button class="pad" data-action="soft" aria-label="천천히 내리기">▼</button>
+  <button class="pad" data-action="right" aria-label="오른쪽">▶</button>
+  <button class="pad" data-action="cw" aria-label="시계 회전">↻</button>
+  <button class="pad wide" data-action="hard" aria-label="단숨에 내리기">단숨에</button>
+</nav>
+
+<script src="js/config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/glass.js"></script>
+<script src="js/sky.js"></script>
+<script src="js/particles.js"></script>
+<script src="js/game.js"></script>
+<script src="js/input.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

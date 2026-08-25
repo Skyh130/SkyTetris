@@ -49,9 +49,10 @@ const Glass = {
 
     /* --- 2) 몸통 그라데이션 ------------------------------------------- */
     const body = ctx.createLinearGradient(x, y, x + w * 0.4, y + h);
-    const top = 0.30 + bright * 0.16 + flash * 0.5;
-    const mid = 0.20 + bright * 0.14 + flash * 0.5;
-    const bot = 0.34 + bright * 0.18 + flash * 0.5;
+    // 가운데는 얇게(잘 비치게), 위아래는 두껍게 — 유리알의 두께감
+    const top = 0.26 + bright * 0.18 + flash * 0.5;
+    const mid = 0.13 + bright * 0.12 + flash * 0.5;
+    const bot = 0.38 + bright * 0.20 + flash * 0.5;
     body.addColorStop(0.00, rgba(shade(P.color, 0.45), top * alpha));
     body.addColorStop(0.42, rgba(P.color, mid * alpha));
     body.addColorStop(1.00, rgba(shade(P.color, -0.28), bot * alpha));
@@ -67,13 +68,13 @@ const Glass = {
     /* --- 3) 안쪽 굴절 테두리 ------------------------------------------ */
     const lw = Math.max(1, s * 0.075);
     ctx.lineWidth = lw;
-    ctx.strokeStyle = rgba(shade(P.color, 0.55), (0.34 + bright * 0.22) * alpha);
+    ctx.strokeStyle = rgba(shade(P.color, 0.62), (0.46 + bright * 0.24) * alpha);
     roundRect(ctx, x + lw / 2, y + lw / 2, w - lw, h - lw, Math.max(1, r - lw / 2));
     ctx.stroke();
 
     /* --- 4) 상단 하이라이트 ------------------------------------------- */
     const hl = ctx.createLinearGradient(0, y, 0, y + h * 0.55);
-    hl.addColorStop(0, rgba('#ffffff', (0.34 + bright * 0.18) * alpha));
+    hl.addColorStop(0, rgba('#ffffff', (0.40 + bright * 0.20) * alpha));
     hl.addColorStop(1, rgba('#ffffff', 0));
     ctx.fillStyle = hl;
     ctx.fillRect(x, y, w, h * 0.55);
@@ -87,7 +88,7 @@ const Glass = {
     ctx.lineTo(sx + w * 0.16, y + h);
     ctx.closePath();
     const st = ctx.createLinearGradient(x, y, x + w, y + h);
-    st.addColorStop(0, rgba('#ffffff', (0.26 + bright * 0.16) * alpha));
+    st.addColorStop(0, rgba('#ffffff', (0.36 + bright * 0.18) * alpha));
     st.addColorStop(1, rgba('#ffffff', 0.02 * alpha));
     ctx.fillStyle = st;
     ctx.fill();
@@ -95,7 +96,7 @@ const Glass = {
     /* 바닥에 고이는 색 — 유리 아래쪽이 더 짙어 보이게 */
     const pool = ctx.createLinearGradient(0, y + h * 0.62, 0, y + h);
     pool.addColorStop(0, rgba(P.glow, 0));
-    pool.addColorStop(1, rgba(P.glow, 0.22 * alpha));
+    pool.addColorStop(1, rgba(P.glow, 0.30 * alpha));
     ctx.fillStyle = pool;
     ctx.fillRect(x, y + h * 0.62, w, h * 0.38);
 
@@ -103,7 +104,7 @@ const Glass = {
 
     /* --- 6) 바깥 윤곽선 ----------------------------------------------- */
     ctx.lineWidth = Math.max(0.75, s * 0.035);
-    ctx.strokeStyle = rgba('#ffffff', (0.26 + bright * 0.20 + flash * 0.5) * alpha);
+    ctx.strokeStyle = rgba('#ffffff', (0.34 + bright * 0.22 + flash * 0.5) * alpha);
     roundRect(ctx, x, y, w, h, r);
     ctx.stroke();
 
@@ -126,11 +127,11 @@ const Glass = {
   _ghost(ctx, x, y, w, h, r, P, alpha) {
     ctx.save();
     roundRect(ctx, x, y, w, h, r);
-    ctx.fillStyle = rgba(P.color, 0.05 * alpha);
+    ctx.fillStyle = rgba(P.color, 0.07 * alpha);
     ctx.fill();
-    ctx.lineWidth = Math.max(1, w * 0.05);
-    ctx.setLineDash([w * 0.22, w * 0.16]);
-    ctx.strokeStyle = rgba(P.color, 0.34 * alpha);
+    ctx.lineWidth = Math.max(1, w * 0.06);
+    ctx.setLineDash([w * 0.26, w * 0.14]);
+    ctx.strokeStyle = rgba(P.color, 0.46 * alpha);
     roundRect(ctx, x, y, w, h, r);
     ctx.stroke();
     ctx.restore();

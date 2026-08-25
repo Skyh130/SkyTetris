@@ -25,7 +25,7 @@ class Particles {
   /* 한 칸이 부서진다. (cx, cy) = 칸의 중심 픽셀 좌표 */
   shatter(cx, cy, size, key, power = 1) {
     const P = PIECES[key] || { color: '#ffffff', glow: '#ffffff' };
-    const shards = this.reduced ? 3 : Math.round(7 * power);
+    const shards = this.reduced ? 3 : Math.round(5 * power);
     for (let i = 0; i < shards; i++) {
       const ang = rand(0, Math.PI * 2);
       const spd = rand(30, 165) * power;
@@ -45,7 +45,7 @@ class Particles {
         max: rand(0.55, 1.15),
       });
     }
-    const motes = this.reduced ? 2 : Math.round(5 * power);
+    const motes = this.reduced ? 2 : Math.round(3 * power);
     for (let i = 0; i < motes; i++) {
       this._push({
         kind: 'mote',
@@ -139,10 +139,10 @@ class Particles {
         ctx.lineTo(p.size * 0.85, p.size * 0.7);
         ctx.lineTo(-p.size * 0.7, p.size * 0.55);
         ctx.closePath();
-        ctx.fillStyle = rgba(p.color, a * 0.75);
+        ctx.fillStyle = rgba(p.color, a * 0.45);
         ctx.fill();
-        ctx.strokeStyle = rgba('#ffffff', a * 0.55);
-        ctx.lineWidth = 0.7;
+        ctx.strokeStyle = rgba('#ffffff', a * 0.7);
+        ctx.lineWidth = 0.8;
         ctx.stroke();
         ctx.restore();
 
