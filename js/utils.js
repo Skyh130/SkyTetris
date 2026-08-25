@@ -41,6 +41,29 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
+/* 브라우저 저장소.
+   사파리 프라이빗 모드나 사이트 데이터 차단 설정에서는 localStorage 에
+   손대는 것만으로 SecurityError 가 난다. 스크립트 맨 위에서 이걸 맞으면
+   게임 전체가 뜨지 않으므로, 읽기·쓰기를 모두 감싸 조용히 넘어간다. */
+const Store = {
+  get(key, fallback = null) {
+    try {
+      const v = window.localStorage.getItem(key);
+      return v === null ? fallback : v;
+    } catch (_) {
+      return fallback;
+    }
+  },
+  set(key, value) {
+    try {
+      window.localStorage.setItem(key, String(value));
+      return true;
+    } catch (_) {
+      return false;     // 저장하지 못해도 이번 판은 그대로 이어진다
+    }
+  },
+};
+
 /* 캔버스를 CSS 크기 × devicePixelRatio 로 맞춘다. */
 function fitCanvas(canvas, cssW, cssH) {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);

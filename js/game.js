@@ -33,7 +33,7 @@ class Game {
     this.time = 0;
     this.lastFrame = 0;
 
-    this.best = Number(localStorage.getItem(STORAGE_KEY) || 0) || 0;
+    this.best = Number(Store.get(STORAGE_KEY, '0')) || 0;
     this.layout();
     this.syncHud();
     this.showOverlay('ready');
@@ -178,7 +178,7 @@ class Game {
     if (!this._deathSounded) Sfx.gameOver();
     if (this.engine.score > this.best) {
       this.best = this.engine.score;
-      localStorage.setItem(STORAGE_KEY, String(this.best));
+      Store.set(STORAGE_KEY, this.best);
       this.newBest = true;
     } else this.newBest = false;
     this.syncHud();
@@ -378,8 +378,8 @@ class Game {
       if (this.engine.isBoardEmpty()) {
         const bonus = this.engine.awardPerfectClear(c.rows.length);
         Sfx.perfectClear();
-        this.banner('하늘이 전부 열렸다', `퍼펙트 클리어 · +${bonus.toLocaleString('ko-KR')}`);
-        this.say(`퍼펙트 클리어. 보너스 ${bonus.toLocaleString('ko-KR')}점`);
+        this.banner('하늘이 전부 열렸다', `바닥까지 비웠다 · +${bonus.toLocaleString('ko-KR')}`);
+        this.say(`바닥까지 비웠다. 보너스 ${bonus.toLocaleString('ko-KR')}점`);
         for (let i = 0; i < 26; i++) {
           this.fx.spark(rand(0, CONFIG.COLS) * this.cell,
             rand(CONFIG.ROWS * 0.35, CONFIG.ROWS) * this.cell,
@@ -411,7 +411,7 @@ class Game {
     if (result.tspin) lines.push(CLEAR_LINES.tspin[0]);
     else if (flavour) lines.push(flavour[randInt(0, flavour.length - 1)]);
     if (result.b2b) lines.push(CLEAR_LINES.b2b[0]);
-    if (result.combo > 0) lines.push(`${result.combo} 콤보`);
+    if (result.combo > 0) lines.push(`${result.combo}연속`);
     const text = lines.join(' · ');
     this.toast(text, result.cleared >= 4 || result.tspin ? 'big' : '');
     this.say(`${text}. 점수 ${this.engine.score.toLocaleString('ko-KR')}점`);
@@ -456,9 +456,10 @@ class Game {
     this.els.holdEmpty.hidden = !!this.engine.hold;
 
     // 화면을 못 보는 사람에게도 판이 어떻게 돌아가는지 전한다
-    const held = this.engine.hold ? PIECES[this.engine.hold].name : '없음';
-    this.els.holdText.textContent = `보관 중: ${held}`;
-    this.els.nextText.textContent = '다음 순서: '
+    this.els.holdText.textContent = this.engine.hold
+      ? `품은 알: ${PIECES[this.engine.hold].name}`
+      : '아직 아무것도 품지 않았다';
+    this.els.nextText.textContent = '다음 알: '
       + this.engine.queue.slice(0, this.nextCount || CONFIG.NEXT_COUNT)
         .map((k) => PIECES[k].name).join(', ');
   }

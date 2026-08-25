@@ -224,15 +224,15 @@ class Engine {
 
     if (tspin === 'mini') {
       base = cleared === 0 ? 100 : 200 * cleared;
-      label = cleared > 0 ? 'T-스핀 미니' : 'T-스핀 미니';
+      label = '살짝 비틀어 넣었다';
       difficult = cleared > 0;
     } else if (tspin === 'tspin') {
       base = [400, 800, 1200, 1600][cleared];
-      label = cleared > 0 ? `T-스핀 ${cleared}줄` : 'T-스핀';
+      label = cleared > 0 ? `비틀어 넣은 ${cleared}줄` : '비틀어 넣었다';
       difficult = cleared > 0;
     } else if (cleared > 0) {
       base = [0, 100, 300, 500, 800][cleared];
-      label = ['', '싱글', '더블', '트리플', '테트리스'][cleared];
+      label = ['', '한 줄', '두 줄', '세 줄', '네 줄'][cleared];
       difficult = cleared === 4;
     }
 

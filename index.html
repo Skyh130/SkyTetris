@@ -28,10 +28,10 @@
   <!-- 왼쪽: 홀드 + 조작 안내 -->
   <aside class="side left">
     <section class="box">
-      <h2 id="hold-label">홀드</h2>
+      <h2 id="hold-label">품은 알</h2>
       <canvas id="hold" role="img" aria-labelledby="hold-label" aria-describedby="hold-text"></canvas>
       <p class="empty-hint" id="hold-empty">아직 비어 있다</p>
-      <p class="sr-only" id="hold-text">보관 중인 조각 없음</p>
+      <p class="sr-only" id="hold-text">아직 아무것도 품지 않았다</p>
     </section>
 
     <section class="box keys" aria-label="조작 안내">
@@ -42,7 +42,7 @@
         <dt><kbd>Space</kbd></dt><dd>단숨에</dd>
         <dt><kbd>↑</kbd><kbd>X</kbd></dt><dd>시계 회전</dd>
         <dt><kbd>Z</kbd></dt><dd>반시계</dd>
-        <dt><kbd>C</kbd></dt><dd>홀드</dd>
+        <dt><kbd>C</kbd></dt><dd>품기</dd>
         <dt><kbd>P</kbd></dt><dd>일시정지</dd>
         <dt><kbd>R</kbd></dt><dd>다시</dd>
         <dt><kbd>M</kbd></dt><dd>소리</dd>
@@ -95,9 +95,9 @@
   <!-- 오른쪽: 넥스트 + 기록 -->
   <aside class="side right">
     <section class="box">
-      <h2 id="next-label">넥스트</h2>
+      <h2 id="next-label">다음 알</h2>
       <canvas id="next" role="img" aria-labelledby="next-label" aria-describedby="next-text"></canvas>
-      <p class="sr-only" id="next-text">다음 조각을 불러오는 중</p>
+      <p class="sr-only" id="next-text">다음 알을 기다리는 중</p>
     </section>
 
     <section class="box stats">
@@ -121,7 +121,7 @@
 
 <!-- 모바일 조작 (FR-3) -->
 <nav class="touchpad" aria-label="터치 조작">
-  <button class="pad" data-action="hold" aria-label="홀드">홀드</button>
+  <button class="pad" data-action="hold" aria-label="조각 품기">품기</button>
   <button class="pad" data-action="ccw" aria-label="반시계 회전">↺</button>
   <button class="pad" data-action="left" aria-label="왼쪽">◀</button>
   <button class="pad" data-action="soft" aria-label="천천히 내리기">▼</button>

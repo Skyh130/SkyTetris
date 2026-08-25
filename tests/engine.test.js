@@ -161,7 +161,7 @@ group('AC-6 · 줄 삭제와 점수');
   check('4줄이 한 번에 감지된다', r.cleared === 4);
   check('테트리스 = 800 × 레벨1', r.gained === 800, `(실제 ${r.gained})`);
   check('테트리스는 B2B 를 세운다', e.backToBack === true);
-  check('연출 문구가 "테트리스"', r.label === '테트리스');
+  check('연출 문구가 "네 줄"', r.label === '네 줄', `(실제 ${r.label})`);
 }
 {
   const e = new Engine();

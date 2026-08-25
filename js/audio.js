@@ -7,7 +7,7 @@ const Sfx = {
   ctx: null,
   master: null,
   delay: null,
-  muted: localStorage.getItem('glassnight.muted') === '1',
+  muted: Store.get('glassnight.muted') === '1',
 
   /* 브라우저 자동재생 정책 — 첫 사용자 입력에서 연다 (FR-7.4) */
   resume() {
@@ -38,7 +38,7 @@ const Sfx = {
 
   toggleMute() {
     this.muted = !this.muted;
-    localStorage.setItem('glassnight.muted', this.muted ? '1' : '0');
+    Store.set('glassnight.muted', this.muted ? '1' : '0');
     if (this.master) {
       this.master.gain.setTargetAtTime(this.muted ? 0 : 0.5, this.ctx.currentTime, 0.02);
     }
