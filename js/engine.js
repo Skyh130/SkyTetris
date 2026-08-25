@@ -246,7 +246,7 @@ class Engine {
       if (cleared === 4) this.stats.tetris++;
     } else {
       this.combo = -1;
-      if (tspin) this.backToBack = this.backToBack;   // 줄 없는 스핀은 B2B를 끊지 않는다
+      // 줄을 지우지 못한 스핀은 B2B 를 끊지도, 세우지도 않는다 (그대로 둔다)
     }
     if (tspin) this.stats.tspins++;
 

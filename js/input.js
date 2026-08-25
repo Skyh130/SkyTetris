@@ -26,10 +26,9 @@ class Input {
     this.game = game;
     game.input = this;
 
-    this.dir = 0;          // -1 왼쪽, +1 오른쪽, 0 없음
+    this.dir = 0;              // -1 왼쪽, +1 오른쪽, 0 없음
     this.held = { left: false, right: false };
-    this.dasTimer = 0;
-    this.arrTimer = 0;
+    this.nextRepeat = 0;       // 다음 자동 이동이 일어날 시각 (실제 시계 기준)
 
     this.bindKeyboard();
     this.bindButtons();
@@ -96,8 +95,7 @@ class Input {
   /* 나중에 누른 방향이 이긴다 — 방향 전환이 즉각적이도록 */
   startMove(dir) {
     this.dir = dir;
-    this.dasTimer = 0;
-    this.arrTimer = 0;
+    this.nextRepeat = performance.now() + CONFIG.DAS;
     this.game.moveH(dir);
   }
 
@@ -107,17 +105,20 @@ class Input {
     else this.dir = 0;
   }
 
-  /* DAS 150ms 뒤 ARR 40ms 간격으로 반복 (FR-3.1) */
-  update(dt) {
+  /* DAS 150ms 뒤 ARR 40ms 간격으로 반복 (FR-3.1)
+     dt 를 누적하면 프레임 경계마다 오차가 쌓여 실측이 설정값보다 늘 늦는다.
+     실제 시계에 다음 반복 시각을 못 박고, 반 프레임(8ms)만 앞당겨
+     프레임 양자화 오차가 한쪽으로 치우치지 않게 한다. */
+  update() {
     if (!this.dir) return;
-    const ms = dt * 1000;
-    this.dasTimer += ms;
-    if (this.dasTimer < CONFIG.DAS) return;
-    this.arrTimer += ms;
-    while (this.arrTimer >= CONFIG.ARR) {
-      this.arrTimer -= CONFIG.ARR;
+    const now = performance.now();
+    let guard = 0;
+    while (now + 8 >= this.nextRepeat && guard++ < 12) {
       this.game.moveH(this.dir);
+      this.nextRepeat += CONFIG.ARR;
     }
+    // 프레임이 크게 밀렸다면 밀린 만큼 따라잡되 폭주하지 않게 되감는다
+    if (this.nextRepeat < now - CONFIG.ARR * 4) this.nextRepeat = now + CONFIG.ARR;
   }
 
   toggleMute() {

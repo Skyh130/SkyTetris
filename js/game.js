@@ -27,6 +27,7 @@ class Game {
     this.lockResets = 0;
     this.softDropping = false;
     this.clearing = null;
+    this.pending = [];        // 연출 중에 눌린 조작을 잠시 모아 두는 곳
     this.shake = 0;
     this.time = 0;
     this.lastFrame = 0;
@@ -44,7 +45,10 @@ class Game {
   layout() {
     this.sky.resize();
 
-    const compact = window.innerWidth < 860;
+    // CSS 의 @media (max-width: 860px) 와 같은 기준을 써야 경계에서 어긋나지 않는다
+    const compact = window.matchMedia
+      ? window.matchMedia('(max-width: 860px)').matches
+      : window.innerWidth <= 860;
     this.compact = compact;
     const availW = compact
       ? window.innerWidth - 28
@@ -63,7 +67,9 @@ class Game {
     }
 
     const cell = Math.floor(Math.min(availH / CONFIG.ROWS, availW / CONFIG.COLS));
-    this.cell = clamp(cell, 12, 40);
+    const next = clamp(cell, 12, 40);
+    if (next !== this.cell) Glass.invalidate();      // 크기가 바뀌면 다시 굽는다
+    this.cell = next;
 
     const w = this.cell * CONFIG.COLS;
     const h = this.cell * CONFIG.ROWS;
@@ -95,6 +101,7 @@ class Game {
     this.engine.reset();
     this.fx.clear();
     this.clearing = null;
+    this.pending.length = 0;
     this.dropTimer = 0;
     this.lockTimer = 0;
     this.lockResets = 0;
@@ -140,7 +147,30 @@ class Game {
   /* --------------------------------------------------------- 플레이어 조작 */
   get canControl() { return this.state === 'playing' && this.engine.piece; }
 
+  /* 줄이 부서지는 380ms 동안 누른 키를 버리면 손이 걸린다.
+     짧은 동안만 모아 두었다가 다음 조각이 나올 때 그대로 적용한다. */
+  remember(action) {
+    this.pending.push({ action, at: performance.now() });
+    if (this.pending.length > 4) this.pending.shift();
+  }
+
+  applyPending() {
+    if (!this.pending.length) return;
+    const now = performance.now();
+    const window = CONFIG.CLEAR_ANIM + 220;   // 연출이 끝날 때까지는 살아 있어야 한다
+    const queued = this.pending.filter((p) => now - p.at < window);
+    this.pending.length = 0;
+    for (const { action } of queued) {
+      if (action === 'left') this.moveH(-1);
+      else if (action === 'right') this.moveH(1);
+      else if (action === 'cw') this.rotate(1);
+      else if (action === 'ccw') this.rotate(-1);
+      else if (action === 'hold') this.hold();
+    }
+  }
+
   moveH(dir) {
+    if (this.state === 'clearing') return this.remember(dir < 0 ? 'left' : 'right');
     if (!this.canControl) return;
     if (this.engine.move(dir, 0)) {
       Sfx.move();
@@ -149,6 +179,7 @@ class Game {
   }
 
   rotate(dir) {
+    if (this.state === 'clearing') return this.remember(dir > 0 ? 'cw' : 'ccw');
     if (!this.canControl) return;
     if (this.engine.rotate(dir)) {
       Sfx.rotate();
@@ -169,9 +200,9 @@ class Game {
         cols.set(x, Math.max(cols.get(x) ?? -99, y));
       }
       for (const [x, y] of cols) {
-        const top = (y - CONFIG.BUFFER + 1) * this.cell;
-        this.fx.streak(x * this.cell, top - dist * this.cell,
-          this.cell, dist * this.cell, p.key);
+        // 조각이 실제로 지나온 구간(출발점 → 착지점)에 잔상을 남긴다
+        const from = (y - CONFIG.BUFFER) * this.cell;
+        this.fx.streak(x * this.cell, from, this.cell, dist * this.cell, p.key);
       }
       this.engine.move(0, dist);
       this.engine.addDropScore(dist, true);
@@ -182,6 +213,7 @@ class Game {
   }
 
   hold() {
+    if (this.state === 'clearing') return this.remember('hold');
     if (!this.canControl) return;
     if (this.engine.swapHold()) {
       Sfx.hold();
@@ -204,7 +236,7 @@ class Game {
   /* --------------------------------------------------------------- 갱신 */
   update(dt) {
     this.time += dt;
-    if (this.input) this.input.update(dt);      // DAS/ARR 자동 반복
+    if (this.input) this.input.update();        // DAS/ARR 자동 반복
     this.sky.update(dt);
     this.fx.update(dt);
     if (this.shake > 0) this.shake = Math.max(0, this.shake - dt * 34);
@@ -298,6 +330,7 @@ class Game {
       if (this.engine.gameOver) return this.gameOver();
       if (!this.engine.spawn()) return this.gameOver();
       this.state = 'playing';
+      this.applyPending();
       this.syncHud();
     }
   }

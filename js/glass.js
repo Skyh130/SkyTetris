@@ -13,6 +13,35 @@
  * ========================================================================= */
 
 const Glass = {
+  /* 같은 알을 매 프레임 처음부터 그리면 그라데이션 객체가 수백 개씩 생긴다.
+     모양이 변하지 않는 알(굳은 알 · 조작 중인 알)은 한 번 구워 두고 재사용한다. */
+  _cache: new Map(),
+  _cacheKey: '',
+
+  _sprite(key, s, bright) {
+    const id = `${key}|${s}|${bright ? 1 : 0}`;
+    let sp = this._cache.get(id);
+    if (sp) return sp;
+
+    const pad = Math.ceil(s * 0.62);              // 발광이 잘리지 않도록 여유
+    const side = Math.ceil(s + pad * 2);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const cv = document.createElement('canvas');
+    cv.width = Math.ceil(side * dpr);
+    cv.height = Math.ceil(side * dpr);
+    const c = cv.getContext('2d');
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this._paint(c, pad, pad, s, key, { alpha: 1, bright, flash: 0 });
+
+    sp = { canvas: cv, pad, side };
+    if (this._cache.size > 64) this._cache.clear();
+    this._cache.set(id, sp);
+    return sp;
+  },
+
+  /* 칸 크기가 바뀌면 구워 둔 알을 버린다. */
+  invalidate() { this._cache.clear(); },
+
   /* 한 칸.
      px, py : 칸의 좌상단 픽셀 좌표
      s      : 한 칸의 픽셀 크기
@@ -24,6 +53,22 @@ const Glass = {
 
     const alpha = opt.alpha === undefined ? 1 : opt.alpha;
     if (alpha <= 0.01) return;
+
+    // 섬광이 없고 고스트가 아니며 여백이 기본값이면 구워 둔 알을 쓴다
+    if (!opt.ghost && !opt.flash && opt.pad === undefined && s >= 6) {
+      const sp = this._sprite(key, s, !!opt.bright);
+      const prev = ctx.globalAlpha;
+      if (alpha < 1) ctx.globalAlpha = prev * alpha;
+      ctx.drawImage(sp.canvas, px - sp.pad, py - sp.pad, sp.side, sp.side);
+      ctx.globalAlpha = prev;
+      return;
+    }
+    return this._paint(ctx, px, py, s, key, opt);
+  },
+
+  _paint(ctx, px, py, s, key, opt = {}) {
+    const P = PIECES[key];
+    const alpha = opt.alpha === undefined ? 1 : opt.alpha;
 
     const pad = opt.pad === undefined ? Math.max(0.5, s * 0.045) : opt.pad;
     const x = px + pad, y = py + pad;
