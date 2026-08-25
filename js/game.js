@@ -473,6 +473,8 @@ class Game {
 
   /* ------------------------------------------------------------ 오버레이 */
   showOverlay(kind) {
+    // 떠 있던 문구는 걷어낸다 — 반투명 오버레이 뒤로 비쳐 글자가 겹친다
+    this.els.toasts.replaceChildren();
     const o = this.els.overlay;
     o.dataset.kind = kind;
     o.classList.add('on');
