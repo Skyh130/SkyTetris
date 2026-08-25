@@ -1,5 +1,7 @@
 # 유리알의 밤 · Glass Night Tetris
 
+[![CI](https://github.com/Skyh130/SkyTetris/actions/workflows/ci.yml/badge.svg)](https://github.com/Skyh130/SkyTetris/actions/workflows/ci.yml)
+
 > 가을이 다 저문 어느 밤, 하늘에서 유리알이 떨어진다.
 
 짙어가는 가을 밤하늘을 배경으로, 유리알처럼 맑고 투명한 블록을 쌓는 웹 테트리스입니다.
@@ -138,6 +140,24 @@ node tests/fuzz.js                # 적대적 테스트 12종
 
 `tests/engine.test.js` 는 `js/engine.js` 가 DOM에 의존하지 않으므로 Node 에서 그대로 돌아갑니다.
 나머지는 Playwright 가 필요합니다.
+
+### CI
+
+어느 브랜치에 올리든 [GitHub Actions](.github/workflows/ci.yml) 가 두 갈래로 돕니다.
+
+| 작업 | 내용 | 걸리는 시간 |
+|---|---|---|
+| **규칙 · 정적 검사** | 문법 검사 · 규칙 37항목 · 외부 자원 참조 없음 · 참조 파일 존재 | ~20초 (의존성 없음) |
+| **브라우저** | 수용 기준 13 · 적대적 12 · 실측 | ~3분 (Chromium 필요) |
+
+규칙이 깨졌는지는 20초 안에 알 수 있도록 나눴습니다.
+실패하면 그 시점의 스크린샷이 아티팩트로 남습니다.
+
+프레임 시간은 **CI 에서 판정하지 않고 숫자만 남깁니다**(`FRAME_GATE=advisory`).
+돌리는 기계에 크게 좌우돼 공용 러너에서는 가짜 실패를 만들기 때문입니다 —
+가짜로 빨간 CI 는 없는 CI 보다 나쁩니다. 입력 타이밍·난이도 곡선·레이아웃·
+견고함은 기계와 무관하므로 어디서든 그대로 판정합니다.
+손에 잡히는 성능 판정은 로컬에서 `node tests/perf.js` 로 합니다.
 
 품질 기준과 라운드별 점수는 [`docs/QUALITY.md`](docs/QUALITY.md) 에 있습니다.
 '좋은 게임, 아름다운 게임'을 감이 아니라 채점 가능한 항목으로 옮겨 두고,

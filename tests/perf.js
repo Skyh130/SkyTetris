@@ -16,6 +16,17 @@ function loadPlaywright() {
 const { chromium } = loadPlaywright();
 const INDEX = 'file://' + path.resolve(__dirname, '..', 'index.html');
 
+/* 프레임 판정을 실패로 볼 것인가.
+   프레임 시간은 돌리는 기계에 크게 좌우된다. 내 노트북에서는 의미 있는
+   신호지만, 공용 CI 러너의 소프트웨어 렌더링에서는 같은 코드가 들쭉날쭉해
+   가짜 실패를 만든다. 가짜로 빨간 CI 는 없는 CI 보다 나쁘므로,
+   CI 에서는 숫자를 찍어 보여 주되 판정에서는 뺀다.
+   나머지 항목(입력 타이밍·난이도 곡선·레이아웃·견고함)은 기계와 무관하므로
+   어디서든 그대로 판정한다.
+     FRAME_GATE=advisory  숫자만 보고 넘어간다
+     FRAME_GATE=strict    (기본) 기준 미달이면 실패 */
+const FRAME_ADVISORY = process.env.FRAME_GATE === 'advisory';
+
 const out = {};
 const log = (k, v) => { out[k] = v; };
 
@@ -301,8 +312,14 @@ const log = (k, v) => { out[k] = v; };
 
   /* --------------------------------------------------------------- 보고 */
   const bad = [];
-  if (out.frame.fps < 55) bad.push(`평균 ${out.frame.fps}fps (목표 55+)`);
-  if (out.frame.p99Ms > 33) bad.push(`상위 1% 프레임 ${out.frame.p99Ms}ms (목표 ≤33)`);
+  const frameNotes = [];
+  if (out.frame.fps < 55) frameNotes.push(`평균 ${out.frame.fps}fps (목표 55+)`);
+  if (out.frame.p99Ms > 33) frameNotes.push(`상위 1% 프레임 ${out.frame.p99Ms}ms (목표 ≤33)`);
+  if (FRAME_ADVISORY) {
+    for (const n of frameNotes) console.log(`\x1b[33m참고\x1b[0m ${n} — 판정에서 제외(FRAME_GATE=advisory)`);
+  } else {
+    bad.push(...frameNotes);
+  }
   if (!out.inputLatency.appliedImmediately) bad.push('입력이 같은 프레임에 반영되지 않음');
   if (out.dasArr.dasMs && Math.abs(out.dasArr.dasMs - out.dasArr.dasTarget) > out.dasArr.dasTarget * 0.15)
     bad.push(`DAS 실측 ${out.dasArr.dasMs}ms (설정 ${out.dasArr.dasTarget})`);
@@ -323,7 +340,8 @@ const log = (k, v) => { out[k] = v; };
   for (const i of (out.robust ? out.robust.issues : [])) bad.push('견고함: ' + i);
   if (errors.length) bad.push(`예외 ${errors.length}건: ${errors.slice(0, 3).join(' | ')}`);
 
-  console.log('\n\x1b[36m측정 결과\x1b[0m');
+  console.log('\n\x1b[36m측정 결과\x1b[0m'
+    + (FRAME_ADVISORY ? '  \x1b[90m(프레임은 참고용)\x1b[0m' : ''));
   console.log(' 프레임      ', JSON.stringify(out.frame));
   console.log(' 입력반응    ', JSON.stringify(out.inputLatency));
   console.log(' DAS/ARR     ', JSON.stringify(out.dasArr));
